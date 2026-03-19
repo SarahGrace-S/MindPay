@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MindPay</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:40px auto;padding:0 16px}
+      label{display:block;margin-top:12px}
+      input,select,button{width:100%;padding:8px;margin-top:6px}
+      .result{margin-top:16px;padding:12px;border-radius:6px}
+      .ok{background:#e6ffed;border:1px solid #8ee2a8}
+      .warn{background:#fff8e6;border:1px solid #ffd36b}
+      .alert{background:#ffecec;border:1px solid #ff9b9b}
+    </style>
+  </head>
+  <body>
+    <h1>MindPay</h1>
+    <p>Classify your payment and get a quick decision before you pay.</p>
+
+    <label>Amount</label>
+    <input id="amount" type="number" step="0.01" min="0" placeholder="0.00" />
+
+    <label>Purpose</label>
+    <input id="purpose" type="text" placeholder="e.g., Groceries, Gift" />
+
+    <label>Category</label>
+    <select id="category">
+      <option value="">-- Select --</option>
+      <option value="Essential">Essential</option>
+      <option value="Non-Essential">Non-Essential</option>
+      <option value="Emergency">Emergency</option>
+    </select>
+
+    <button id="submit">Analyze Payment</button>
+
+    <div id="result"></div>
+
+    <script>
+      const btn = document.getElementById('submit');
+      const result = document.getElementById('result');
+
+      function showMessage(text, type){
+        result.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'result ' + (type || 'ok');
+        div.textContent = text;
+        result.appendChild(div);
+      }
+
+      btn.addEventListener('click', async () => {
+        const amount = document.getElementById('amount').value;
+        const purpose = document.getElementById('purpose').value;
+        const category = document.getElementById('category').value;
+
+        // client-side validation
+        if (!amount || isNaN(amount) || Number(amount) < 0) {
+          showMessage('Please enter a valid amount', 'alert');
+          return;
+        }
+        if (!purpose.trim()) { showMessage('Purpose is required', 'alert'); return; }
+        if (!category) { showMessage('Please select a category', 'alert'); return; }
+
+        try {
+          const res = await fetch('/api/payments/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, purpose, category })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Server error');
+
+          // choose style based on message
+          let cls = 'ok';
+          if (data.message && data.message.toLowerCase().includes('think')) cls = 'warn';
+          if (data.message && data.message.toLowerCase().includes('emergency')) cls = 'alert';
+          showMessage(data.message || 'Done', cls);
+        } catch (err) {
+          showMessage(err.message || 'Request failed', 'alert');
+        }
+      });
+    </script>
+  </body>
+</html>
