@@ -5,80 +5,460 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>MindPay</title>
     <style>
-      body{font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:40px auto;padding:0 16px}
+      body{font-family:Inter, Arial,Helvetica,sans-serif;max-width:920px;margin:24px auto;padding:0 16px;background:linear-gradient(135deg,#e6f0ff 0%,#f7e9ff 100%);color:#1b2630}
       label{display:block;margin-top:12px}
       input,select,button{width:100%;padding:8px;margin-top:6px}
       .result{margin-top:16px;padding:12px;border-radius:6px}
       .ok{background:#e6ffed;border:1px solid #8ee2a8}
       .warn{background:#fff8e6;border:1px solid #ffd36b}
       .alert{background:#ffecec;border:1px solid #ff9b9b}
+      .hidden{display:none}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+      h1{margin:0;font-size:1.6rem}
+      .card{padding:18px;border-radius:12px;background:#fff;box-shadow:0 6px 18px rgba(20,30,50,0.06);border:1px solid rgba(20,30,50,0.04)}
+      button{background:linear-gradient(180deg,#2b90ff,#1a6fe8);color:white;border:none;border-radius:8px;cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .15s}
+      button:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 10px 30px rgba(26,111,232,0.18)}
+      .provider-btn{background:linear-gradient(90deg,#fff,#fff);color:#1b2630;border:1px solid #e6eef9;padding:10px;border-radius:10px;display:inline-flex;align-items:center;gap:8px}
+      .provider-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(20,30,50,0.06)}
+      .btn-ghost{background:transparent;color:#1b2630;border:1px solid #e6eef9}
+      input,select{border:1px solid #e6eef9;border-radius:8px}
+      .muted{color:#536275}
+      .fade{animation:fadeIn .45s ease}
+      @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+      .progress{height:12px;background:#eef4ff;border-radius:10px;overflow:hidden}
+      .progress > .bar{height:100%;width:0;background:linear-gradient(90deg,#2b90ff,#9ad0ff);transition:width .6s ease}
+      .progress.over > .bar{background:linear-gradient(90deg,#ff6b6b,#ffb3b3)}
+      .success-check{width:64px;height:64px;border-radius:50%;background:linear-gradient(90deg,#28c76f,#12a454);display:flex;align-items:center;justify-content:center;color:white;font-size:28px;transform:scale(0);transition:transform .35s ease}
+      .success-check.show{transform:scale(1)}
+      .card{padding:12px;border:1px solid #eee;border-radius:6px;background:#fafafa}
+      .muted{color:#666;font-size:0.9em}
+      .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)}
+      /* Ensure hidden modals stay hidden even if .modal sets display */
+      .modal.hidden{display:none !important}
+      .modal .box{background:white;padding:18px;border-radius:8px;max-width:420px;width:100%}
+      .small{font-size:0.9em}
     </style>
   </head>
   <body>
     <h1>MindPay</h1>
-    <p>Classify your payment and get a quick decision before you pay.</p>
+    <!-- Two main views: setupView (first-time setup) and appView (payments) -->
+    <header>
+      <h1>MindPay</h1>
+      <div class="muted">Smart budgeting assistant</div>
+    </header>
 
-    <label>Amount</label>
-    <input id="amount" type="number" step="0.01" min="0" placeholder="0.00" />
+    <div id="setupView" class="card fade">
+      <h2>Set Your Budget</h2>
+      <p class="muted">Set limits per sub-category. Data stored locally.</p>
+      <label style="margin-top:12px">Period</label>
+      <select id="periodSelect" style="width:200px">
+        <option value="monthly">Monthly</option>
+        <option value="weekly">Weekly</option>
+      </select>
+      <div class="grid" style="margin-top:12px">
+        <div class="card">
+          <h3>Essential</h3>
+          <label>Food</label>
+          <input id="limit_food" type="number" step="0.01" min="0" placeholder="0.00" />
+          <label>Rent</label>
+          <input id="limit_rent" type="number" step="0.01" min="0" placeholder="0.00" />
+          <label>Grocery</label>
+          <input id="limit_grocery" type="number" step="0.01" min="0" placeholder="0.00" />
+        </div>
+        <div class="card">
+          <h3>Non-Essential</h3>
+          <label>Shopping</label>
+          <input id="limit_shopping" type="number" step="0.01" min="0" placeholder="0.00" />
+          <label>Entertainment</label>
+          <input id="limit_entertainment" type="number" step="0.01" min="0" placeholder="0.00" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="saveSetup">Save Setup</button>
+        <button id="skipSetup" type="button" class="btn-ghost">Skip (use zeros)</button>
+      </div>
+    </div>
 
-    <label>Purpose</label>
-    <input id="purpose" type="text" placeholder="e.g., Groceries, Gift" />
+    <div id="appView" class="hidden fade">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>Make a Smart Payment</h2>
+        <div>
+          <button id="editSetup" class="btn-ghost">Edit Setup</button>
+          <button id="resetAll" class="btn-ghost">Reset All</button>
+        </div>
+      </div>
 
-    <label>Category</label>
-    <select id="category">
-      <option value="">-- Select --</option>
-      <option value="Essential">Essential</option>
-      <option value="Non-Essential">Non-Essential</option>
-      <option value="Emergency">Emergency</option>
-    </select>
+      <div class="grid" style="margin-top:12px">
+        <div class="card">
+          <label>Sub-Category</label>
+          <select id="subcat">
+            <option value="">-- Select --</option>
+            <optgroup label="Essential">
+              <option value="Food">🍔  Food</option>
+              <option value="Rent">🏠  Rent</option>
+              <option value="Grocery">🛒  Grocery</option>
+            </optgroup>
+            <optgroup label="Non-Essential">
+              <option value="Shopping">🛍️  Shopping</option>
+              <option value="Entertainment">🎬  Entertainment</option>
+            </optgroup>
+            <option value="Emergency">🚨  Emergency</option>
+          </select>
 
-    <button id="submit">Analyze Payment</button>
+          <label>Amount</label>
+          <input id="pay_amount" type="number" step="0.01" min="0" placeholder="0.00" />
 
-    <div id="result"></div>
+          <label>Purpose</label>
+          <input id="pay_purpose" type="text" placeholder="e.g., Movie, Dinner" />
+
+          <div style="margin-top:8px">Remaining for selected: <strong id="subRemain">-</strong></div>
+          <div id="reminder" class="muted small" style="margin-top:6px"></div>
+
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="payBtn">Proceed to Pay</button>
+            <button id="cancelBtn" type="button" class="btn-ghost">Cancel</button>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="muted small">Pay with</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="gpay" type="button" class="provider-btn">Google Pay</button>
+              <button id="phonepe" type="button" class="provider-btn">PhonePe</button>
+              <button id="paytm" type="button" class="provider-btn">Paytm</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Dashboard</h3>
+          <div style="margin-top:8px">Total budget: <strong id="totalBudget">-</strong></div>
+          <div>Total spent: <strong id="totalSpent">-</strong></div>
+          <div style="margin-top:12px">
+            <div class="muted">Essential usage</div>
+            <div class="progress" style="margin-top:6px"><div id="bar_essential" class="bar" style="width:0"></div></div>
+            <div class="muted" style="margin-top:8px">Non-Essential usage</div>
+            <div class="progress" style="margin-top:6px"><div id="bar_nonessential" class="bar" style="width:0"></div></div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div>Food: <strong id="bal_food">-</strong></div>
+            <div class="progress" style="margin-top:6px"><div id="p_food" class="bar" style="width:0"></div></div>
+            <div style="margin-top:8px">Rent: <strong id="bal_rent">-</strong></div>
+            <div class="progress" style="margin-top:6px"><div id="p_rent" class="bar" style="width:0"></div></div>
+            <div style="margin-top:8px">Grocery: <strong id="bal_grocery">-</strong></div>
+            <div class="progress" style="margin-top:6px"><div id="p_grocery" class="bar" style="width:0"></div></div>
+            <div style="margin-top:8px">Shopping: <strong id="bal_shopping">-</strong></div>
+            <div class="progress" style="margin-top:6px"><div id="p_shopping" class="bar" style="width:0"></div></div>
+            <div style="margin-top:8px">Entertainment: <strong id="bal_entertainment">-</strong></div>
+            <div class="progress" style="margin-top:6px"><div id="p_entertainment" class="bar" style="width:0"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="result" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Confirmation / mock payment modal -->
+    <div id="confirmModal" class="modal hidden">
+      <div class="box card">
+        <div id="confirmText"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button id="confirmYes">Confirm</button>
+          <button id="confirmNo" class="btn-ghost">Cancel</button>
+        </div>
+        <div id="confirmTimer" class="muted small" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- Mock success screen -->
+    <div id="successModal" class="modal hidden">
+      <div class="box card" style="text-align:center">
+        <div id="successAnim" class="success-check">✓</div>
+        <h3 style="margin-top:12px">Payment Successful</h3>
+        <p id="successText"></p>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
+          <button id="closeSuccess">Back</button>
+        </div>
+      </div>
+    </div>
 
     <script>
-      const btn = document.getElementById('submit');
-      const result = document.getElementById('result');
+      // Storage key and subcategories
+      const STORAGE_KEY = 'mp_budget_v3';
+      const SUBCATS = ['Food','Rent','Grocery','Shopping','Entertainment'];
 
-      function showMessage(text, type){
-        result.innerHTML = '';
-        const div = document.createElement('div');
-        div.className = 'result ' + (type || 'ok');
-        div.textContent = text;
-        result.appendChild(div);
+      function defaultState(){
+        const limits = {};
+        const spent = {};
+        SUBCATS.forEach(s=>{ limits[s]=0; spent[s]=0; });
+        return { limits, spent, setupComplete:false, period:'monthly' };
       }
 
-      btn.addEventListener('click', async () => {
-        const amount = document.getElementById('amount').value;
-        const purpose = document.getElementById('purpose').value;
-        const category = document.getElementById('category').value;
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return defaultState();
+          const parsed = JSON.parse(raw);
+          const base = defaultState();
+          return Object.assign(base, parsed);
+        }catch(e){ return defaultState(); }
+      }
 
-        // client-side validation
-        if (!amount || isNaN(amount) || Number(amount) < 0) {
-          showMessage('Please enter a valid amount', 'alert');
-          return;
-        }
-        if (!purpose.trim()) { showMessage('Purpose is required', 'alert'); return; }
-        if (!category) { showMessage('Please select a category', 'alert'); return; }
+      function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 
-        try {
-          const res = await fetch('/api/payments/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount, purpose, category })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Server error');
+      function fmt(v){ return Number(v||0).toFixed(2); }
 
-          // choose style based on message
-          let cls = 'ok';
-          if (data.message && data.message.toLowerCase().includes('think')) cls = 'warn';
-          if (data.message && data.message.toLowerCase().includes('emergency')) cls = 'alert';
-          showMessage(data.message || 'Done', cls);
-        } catch (err) {
-          showMessage(err.message || 'Request failed', 'alert');
+      // Elements
+      const periodSelect = document.getElementById('periodSelect');
+      const setupView = document.getElementById('setupView');
+      const appView = document.getElementById('appView');
+      const saveSetupBtn = document.getElementById('saveSetup');
+      const skipSetupBtn = document.getElementById('skipSetup');
+      const editSetupBtn = document.getElementById('editSetup');
+      const resetAllBtn = document.getElementById('resetAll');
+
+      const subcatSel = document.getElementById('subcat');
+      const payAmt = document.getElementById('pay_amount');
+      const payPurpose = document.getElementById('pay_purpose');
+      const payBtn = document.getElementById('payBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const subRemainEl = document.getElementById('subRemain');
+      const reminderEl = document.getElementById('reminder');
+      const resultEl = document.getElementById('result');
+
+      const balEls = {
+        Food: document.getElementById('bal_food'),
+        Rent: document.getElementById('bal_rent'),
+        Grocery: document.getElementById('bal_grocery'),
+        Shopping: document.getElementById('bal_shopping'),
+        Entertainment: document.getElementById('bal_entertainment')
+      };
+
+      const progBars = {
+        Food: document.getElementById('p_food'),
+        Rent: document.getElementById('p_rent'),
+        Grocery: document.getElementById('p_grocery'),
+        Shopping: document.getElementById('p_shopping'),
+        Entertainment: document.getElementById('p_entertainment')
+      };
+
+      const barEssential = document.getElementById('bar_essential');
+      const barNonessential = document.getElementById('bar_nonessential');
+
+      const confirmModal = document.getElementById('confirmModal');
+      const confirmText = document.getElementById('confirmText');
+      const confirmYes = document.getElementById('confirmYes');
+      const confirmNo = document.getElementById('confirmNo');
+      const confirmTimer = document.getElementById('confirmTimer');
+
+      const successModal = document.getElementById('successModal');
+      const successText = document.getElementById('successText');
+      const closeSuccess = document.getElementById('closeSuccess');
+      const successAnim = document.getElementById('successAnim');
+
+      let state = loadState();
+      let confirmInterval = null;
+
+      // Helpers
+      function remainingFor(subcat){
+        if(subcat === 'Emergency') return Infinity;
+        return Math.max(0, (state.limits[subcat]||0) - (state.spent[subcat]||0));
+      }
+
+      function totalBudget(){
+        return SUBCATS.reduce((s,k)=>s + (Number(state.limits[k])||0),0);
+      }
+
+      function totalSpent(){
+        return SUBCATS.reduce((s,k)=>s + (Number(state.spent[k])||0),0);
+      }
+
+      function renderBalances(){
+        SUBCATS.forEach(s=>{
+          balEls[s].textContent = fmt(remainingFor(s));
+          // progress percent = spent/limit
+          const limit = Number(state.limits[s])||0;
+          const spent = Number(state.spent[s])||0;
+          let pct = limit>0 ? Math.min(100, Math.round((spent/limit)*100)) : (spent>0?100:0);
+          progBars[s].style.width = pct + '%';
+          if(spent>limit) progBars[s].parentElement.classList.add('over'); else progBars[s].parentElement.classList.remove('over');
+        });
+
+        document.getElementById('totalBudget').textContent = fmt(totalBudget());
+        document.getElementById('totalSpent').textContent = fmt(totalSpent());
+
+        // essential / non-essential usage
+        const essentialKeys = ['Food','Rent','Grocery'];
+        const nonessentialKeys = ['Shopping','Entertainment'];
+        const essLimit = essentialKeys.reduce((s,k)=>s+(Number(state.limits[k])||0),0);
+        const essSpent = essentialKeys.reduce((s,k)=>s+(Number(state.spent[k])||0),0);
+        const nonLimit = nonessentialKeys.reduce((s,k)=>s+(Number(state.limits[k])||0),0);
+        const nonSpent = nonessentialKeys.reduce((s,k)=>s+(Number(state.spent[k])||0),0);
+        const essPct = essLimit>0?Math.min(100,Math.round((essSpent/essLimit)*100)): (essSpent>0?100:0);
+        const nonPct = nonLimit>0?Math.min(100,Math.round((nonSpent/nonLimit)*100)): (nonSpent>0?100:0);
+        barEssential.style.width = essPct + '%';
+        barNonessential.style.width = nonPct + '%';
+        if(essSpent>essLimit) barEssential.parentElement.classList.add('over'); else barEssential.parentElement.classList.remove('over');
+        if(nonSpent>nonLimit) barNonessential.parentElement.classList.add('over'); else barNonessential.parentElement.classList.remove('over');
+      }
+
+      function showResult(text,type){
+        resultEl.innerHTML = '';
+        const d = document.createElement('div'); d.className='result '+(type||'ok'); d.textContent=text; resultEl.appendChild(d);
+      }
+
+      function showView(){
+        if(state.setupComplete){ setupView.classList.add('hidden'); appView.classList.remove('hidden'); }
+        else { setupView.classList.remove('hidden'); appView.classList.add('hidden'); }
+      }
+
+      // Setup actions
+      saveSetupBtn.addEventListener('click', ()=>{
+        SUBCATS.forEach(s=>{
+          const el = document.getElementById('limit_'+s.toLowerCase());
+          const v = parseFloat(el.value) || 0;
+          state.limits[s] = v;
+        });
+        state.period = periodSelect.value || 'monthly';
+        state.setupComplete = true;
+        saveState(state);
+        renderBalances();
+        showView();
+        showResult('Setup saved. Ready to make payments.','ok');
+      });
+
+      skipSetupBtn.addEventListener('click', ()=>{
+        state.setupComplete = true; saveState(state); renderBalances(); showView();
+        showResult('Setup skipped. You can edit limits later.','warn');
+      });
+
+      editSetupBtn.addEventListener('click', ()=>{ setupView.classList.remove('hidden'); appView.classList.add('hidden'); });
+      resetAllBtn.addEventListener('click', ()=>{ if(!confirm('Reset all stored data?')) return; localStorage.removeItem(STORAGE_KEY); state = defaultState(); saveState(state); renderBalances(); showView(); showResult('All data reset','ok'); });
+
+      // Update remaining and reminders when selection or amount changes
+      function updateSelected(){
+        const s = subcatSel.value;
+        const rem = remainingFor(s);
+        subRemainEl.textContent = (rem === Infinity) ? '-' : fmt(rem);
+        if(s === 'Shopping' || s === 'Entertainment') reminderEl.textContent = 'Think again 🤔 — is this really necessary?';
+        else if(s && s !== 'Emergency') reminderEl.textContent = 'This looks essential. Proceed wisely.';
+        else if(s === 'Emergency') reminderEl.textContent = 'Emergency payment — skipping checks 🚨';
+        else reminderEl.textContent = '';
+      }
+
+      subcatSel.addEventListener('change', updateSelected);
+      payAmt.addEventListener('input', ()=>{
+        updateSelected();
+        const s = subcatSel.value; const amount = parseFloat(payAmt.value)||0; const rem = remainingFor(s);
+        if(s && s !== 'Emergency'){
+          if(amount > rem){ showResult('Warning: amount exceeds remaining balance','warn'); }
+          else { showResult(`Within limit. Remaining ${fmt(rem-amount)} after this payment.`,'ok'); }
         }
       });
+
+      cancelBtn.addEventListener('click', ()=>{ payAmt.value=''; payPurpose.value=''; showResult('Payment input cleared','ok'); });
+
+      // Confirmation modal with 10s auto-cancel
+      function showConfirmation(text, onConfirm, onCancel){
+        confirmText.textContent = text; confirmModal.classList.remove('hidden');
+        let remaining = 10; confirmTimer.textContent = `Auto-cancels in ${remaining}s`;
+        confirmYes.disabled = false;
+        if(confirmInterval) clearInterval(confirmInterval);
+        confirmInterval = setInterval(()=>{
+          remaining -=1; confirmTimer.textContent = `Auto-cancels in ${remaining}s`;
+          if(remaining<=0){ clearInterval(confirmInterval); confirmModal.classList.add('hidden'); confirmTimer.textContent=''; if(onCancel) onCancel(); }
+        },1000);
+
+        function cleanup(){ if(confirmInterval) clearInterval(confirmInterval); confirmModal.classList.add('hidden'); confirmTimer.textContent=''; }
+
+        confirmYes.onclick = ()=>{ cleanup(); if(onConfirm) onConfirm(); };
+        confirmNo.onclick = ()=>{ cleanup(); if(onCancel) onCancel(); };
+      }
+
+      // Payment flow with loading and success animation
+      payBtn.addEventListener('click', ()=>{
+        const sub = subcatSel.value;
+        const amount = parseFloat(payAmt.value);
+        const purpose = (payPurpose.value||'').trim();
+        if(!sub){ showResult('Select a sub-category','alert'); return; }
+        if(!amount || isNaN(amount) || amount<=0){ showResult('Enter a valid amount','alert'); return; }
+        if(!purpose){ showResult('Enter a purpose','alert'); return; }
+
+        const rem = remainingFor(sub);
+
+        // Helper: perform update, show animation then trigger UPI
+        function initiateUPIPayment(amount, sub, purpose, provider){
+          // persist spent immediately so balances update even if redirect occurs
+          if(sub !== 'Emergency') state.spent[sub] = (state.spent[sub]||0) + amount;
+          saveState(state); renderBalances(); updateSelected();
+
+          showResult('Initiating payment...', 'ok');
+          successText.textContent = `${provider?provider+' • ':''}${sub} • ${fmt(amount)} • ${purpose}`;
+          successModal.classList.remove('hidden');
+          successAnim.classList.add('show');
+
+          // short delay for animation then redirect to UPI
+          setTimeout(()=>{
+            successAnim.classList.remove('show');
+            const upi = `upi://pay?pa=yourupi@upi&pn=MindPay&am=${encodeURIComponent(amount)}&cu=INR`;
+            // Navigate to UPI intent (will open UPI apps when available)
+            window.location.href = upi;
+            // If redirect blocked, keep success modal visible as confirmation
+          }, 1100);
+        }
+
+        // Common validation already done above
+        if(sub === 'Emergency'){
+          showConfirmation('Emergency payment — proceed to UPI?', ()=>{ initiateUPIPayment(amount, sub, purpose, 'Emergency'); }, ()=>{ showResult('Emergency payment cancelled','warn'); });
+          return;
+        }
+
+        if(amount > rem){
+          showConfirmation(`Amount ${fmt(amount)} exceeds remaining ${fmt(rem)}. Is this really necessary?`, ()=>{ initiateUPIPayment(amount, sub, purpose, 'UPI'); }, ()=>{ showResult('Payment cancelled','warn'); });
+          return;
+        }
+
+        const ctxMsg = (sub === 'Shopping' || sub === 'Entertainment') ? 'Think again 🤔 — is this really necessary?' : 'This looks essential. Proceed wisely.';
+        showConfirmation(`${ctxMsg} Confirm payment of ${fmt(amount)} for ${sub}?`, ()=>{ initiateUPIPayment(amount, sub, purpose, 'UPI'); }, ()=>{ showResult('Payment cancelled','warn'); });
+      });
+
+      // Provider buttons: validate and confirm then initiate UPI
+      document.getElementById('gpay').addEventListener('click', ()=>{ providerClick('Google Pay'); });
+      document.getElementById('phonepe').addEventListener('click', ()=>{ providerClick('PhonePe'); });
+      document.getElementById('paytm').addEventListener('click', ()=>{ providerClick('Paytm'); });
+
+      function providerClick(provider){
+        const sub = subcatSel.value;
+        const amount = parseFloat(payAmt.value);
+        const purpose = (payPurpose.value||'').trim();
+        if(!sub){ showResult('Select a sub-category','alert'); return; }
+        if(!amount || isNaN(amount) || amount<=0){ showResult('Enter a valid amount','alert'); return; }
+        if(!purpose){ showResult('Enter a purpose','alert'); return; }
+        const rem = remainingFor(sub);
+        if(sub === 'Emergency'){
+          showConfirmation(`Proceed to ${provider} for emergency payment of ${fmt(amount)}?`, ()=>{ initiateUPIPayment(amount, sub, purpose, provider); }, ()=>{ showResult('Payment cancelled','warn'); });
+          return;
+        }
+        if(amount > rem){
+          showConfirmation(`Amount ${fmt(amount)} exceeds remaining ${fmt(rem)}. Proceed with ${provider}?`, ()=>{ initiateUPIPayment(amount, sub, purpose, provider); }, ()=>{ showResult('Payment cancelled','warn'); });
+          return;
+        }
+        // within limit
+        showConfirmation(`Proceed to ${provider} to pay ${fmt(amount)} for ${sub}?`, ()=>{ initiateUPIPayment(amount, sub, purpose, provider); }, ()=>{ showResult('Payment cancelled','warn'); });
+      }
+
+      // Close success
+      closeSuccess.addEventListener('click', ()=>{ successModal.classList.add('hidden'); payAmt.value=''; payPurpose.value=''; showResult('Payment recorded','ok'); });
+
+      // Initialize setup inputs from state
+      function initSetupInputs(){
+        periodSelect.value = state.period || 'monthly';
+        SUBCATS.forEach(s=>{ const el = document.getElementById('limit_'+s.toLowerCase()); if(el) el.value = state.limits[s] || '' });
+      }
+
+      // initial render
+      initSetupInputs(); renderBalances(); showView(); updateSelected();
     </script>
   </body>
 </html>
